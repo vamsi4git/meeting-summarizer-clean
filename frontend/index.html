@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meeting Summarizer</title>
+</head>
+<body>
+  <h1>Meeting Summarizer</h1>
+
+  <!-- Upload transcript -->
+  <input type="file" id="fileInput" accept=".txt" />
+  <br><br>
+
+  <!-- Custom instruction -->
+  <textarea id="customPrompt" rows="3" cols="50" placeholder="Enter custom instructions (e.g., Summarize in bullet points)"></textarea>
+  <br><br>
+
+  <!-- Generate summary -->
+  <button onclick="generateSummary()">Generate Summary</button>
+
+  <h2>Summary:</h2>
+  <textarea id="summaryBox" rows="10" cols="60" placeholder="Your summary will appear here..." ></textarea>
+  <br><br>
+
+  <!-- Email sharing -->
+  <input type="email" id="emailInput" placeholder="Recipient email address" />
+  <button onclick="sendEmail()">Send via Email</button>
+
+  <div id="status"></div>
+
+  <script>
+    async function generateSummary() {
+      const file = document.getElementById("fileInput").files[0];
+      const prompt = document.getElementById("customPrompt").value;
+      const summaryBox = document.getElementById("summaryBox");
+      const statusDiv = document.getElementById("status");
+
+      let text = "";
+
+      if (file) {
+        text = await file.text(); // Read file content
+      } else {
+        alert("Please upload a transcript file");
+        return;
+      }
+
+      summaryBox.value = "⏳ Generating summary...";
+
+      try {
+        const response = await fetch("http://localhost:3000/summarize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, prompt }),
+        });
+
+        const data = await response.json();
+        summaryBox.value = data.summary || "❌ Failed to generate summary";
+      } catch (err) {
+        console.error(err);
+        summaryBox.value = "⚠️ Error: Could not connect to backend";
+      }
+    }
+
+    async function sendEmail() {
+      const email = document.getElementById("emailInput").value;
+      const summary = document.getElementById("summaryBox").value;
+      const statusDiv = document.getElementById("status");
+
+      if (!email || !summary) {
+        alert("Please provide an email and summary");
+        return;
+      }
+
+      try {
+        const response = await fetch("http://localhost:3000/send-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, summary }),
+        });
+
+        const data = await response.json();
+        statusDiv.innerHTML = data.message || "Email sent!";
+      } catch (err) {
+        console.error(err);
+        statusDiv.innerHTML = "⚠️ Error sending email";
+      }
+    }
+  </script>
+</body>
+</html>
